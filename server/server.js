@@ -1,10 +1,20 @@
 const express = require('express');
 const path = require('path');
 const db = require('./config/connection');
-const routes = require('./routes');
+// const routes = require('./routes');
+const { ApolloServer } = require('apollo-server-express');
+const { typeDefs, resolvers } = require('./schemas');
+const { authMiddleware } = require('./utils/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: authMiddleware,
+});
+
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -14,11 +24,22 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../client/build')));
 }
 
-app.use(routes);
+// app.use(routes);
 
-db.once('open', () => {
-  app.listen(PORT, () => console.log(`🌍 Now listening on localhost:${PORT}`));
-});
+const startApolloServer = async () => {
+  await server.start();
+  server.applyMiddleware({ app });
+  
+  db.once('open', () => {
+    app.listen(PORT, () => {
+      console.log(`API server running on port ${PORT}!`);
+      console.log(`Use GraphQL at http://localhost:${PORT}${server.graphqlPath}`);
+    })
+  })
+  };
+  
+// Call the async function to start the server
+  startApolloServer();
 
 // 1. npm i and add .gitignore for node_modules
 
@@ -26,7 +47,7 @@ db.once('open', () => {
 
 // 3. check your config folder for the connection to mongo ('mongodb://127.0.0.1:27017/googlebooks')
 
-// 4. use Apollo in server .js
+// 4. Updated our in server .js
 
 // 5. add typeDefs and Resolvers in schema folder on server side
 
@@ -37,5 +58,7 @@ db.once('open', () => {
 // 8. Update components and pages with graphql/apollo
 
 // 9. Deploy to Heroku
+
+// 10. Update auth files in server and client as needed
 
 
